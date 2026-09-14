@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { DifficultyLevel, LocationType, EquipmentType } from '../../types';
 import { useFitness } from '../../context/FitnessContext';
 
 const ACHIEVEMENT_LIST = [
@@ -163,7 +164,7 @@ export const ProfilePage: React.FC = () => {
                 { label: 'Height', value: `${userProfile.height} cm` },
                 { label: 'Weight', value: `${userProfile.weight} kg` },
                 { label: 'Goal Weight', value: `${userProfile.goalWeight || '--'} kg` },
-                { label: 'BMI', value: (userProfile.weight / ((userProfile.height / 100) ** 2)).toFixed(1) },
+                { label: 'BMI', value: userProfile.weight && userProfile.height ? (userProfile.weight / ((userProfile.height / 100) ** 2)).toFixed(1) : '--' },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                   <span style={{ color: '#888', fontSize: 14 }}>{item.label}</span>

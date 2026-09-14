@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { useFitness } from '../../context/FitnessContext';
+import { AdminExerciseForm } from './AdminExerciseForm';
 
 const TABS = ['Overview', 'Users', 'Exercises', 'Workouts', 'Analytics', 'Content', 'Logs', 'System', 'Roles'];
 
@@ -44,7 +46,7 @@ export const AdminDashboard: React.FC = () => {
     { label: 'Workouts', value: workouts.length, icon: '📋', color: '#a855f7' },
     { label: 'Notifications', value: notifications.length, icon: '🔔', color: '#f59e0b' },
     { label: 'Active Users', value: adminUsers.filter(u => u.status === 'active').length, icon: '✅', color: '#00ff66' },
-    { label: 'System Health', value: `${systemHealth.filter(s => s.status === 'healthy').length}/${systemHealth.length}`, icon: '💻', color: '#10b981' },
+    { label: 'System Health', value: `${systemHealth.filter(s => s.status === 'Operational').length}/${systemHealth.length}`, icon: '💻', color: '#10b981' },
   ];
 
   return (
@@ -124,16 +126,21 @@ export const AdminDashboard: React.FC = () => {
                 <h3 style={{ color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: 16 }}>💻 System Health</h3>
                 <div style={{ display: 'grid', gap: 12 }}>
                   {systemHealth.map(item => (
-                    <div key={item.service} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: 12 }}>
+                    <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: 12 }}>
                       <div>
-                        <div style={{ color: '#e0e0e0', fontWeight: 600 }}>{item.service}</div>
+                        <div style={{ color: '#e0e0e0', fontWeight: 600 }}>{item.service || item.name}</div>
                         {item.detail && <div style={{ color: '#666', fontSize: 12 }}>{item.detail}</div>}
                       </div>
-                      <span style={{
-                        background: item.status === 'healthy' ? 'rgba(0,255,102,0.15)' : 'rgba(239,68,68,0.15)',
-                        color: item.status === 'healthy' ? '#00ff66' : '#ef4444',
-                        fontSize: 12, fontWeight: 700, padding: '4px 14px', borderRadius: 20
-                      }}>{item.status.toUpperCase()}</span>
+                      <div style={{
+                        padding: '4px 12px',
+                        borderRadius: 20,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: item.status === 'Operational' ? 'rgba(0,255,102,0.15)' : 'rgba(239,68,68,0.15)',
+                        color: item.status === 'Operational' ? '#00ff66' : '#ef4444',
+                      }}>
+                        {item.status}
+                      </div>
                     </div>
                   ))}
                 </div>

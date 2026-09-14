@@ -13,7 +13,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { useFitness } from '../../context/FitnessContext';
-import { FitnessGoal, LocationType, DifficultyLevel, EquipmentType, WorkoutProgram, WorkoutExerciseItem } from '../../types';
+import type { FitnessGoal, LocationType, DifficultyLevel, EquipmentType, WorkoutProgram, WorkoutExerciseItem } from '../../types';
 
 export const WorkoutGenerator: React.FC = () => {
   const { exercises, startWorkout, addWorkout, setCurrentView } = useFitness();

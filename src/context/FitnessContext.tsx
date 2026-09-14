@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import confetti from 'canvas-confetti';
-import { 
+import type { 
   Exercise, 
   WorkoutProgram, 
   UserProfile, 
@@ -12,7 +12,7 @@ import {
   AdminUser, 
   ActivityLog, 
   SystemHealthItem,
-  AdminRole 
+  AdminRole
 } from '../types';
 import { 
   INITIAL_EXERCISES, 

@@ -173,7 +173,7 @@ export const CalendarPage: React.FC = () => {
               <h3 style={{ color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: 16 }}>📊 Month Summary</h3>
               {[
                 { label: 'Workouts Done', value: calendar.filter(e => e.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`) && e.status === 'completed').length },
-                { label: 'Total Minutes', value: calendar.filter(e => e.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)).reduce((s, e) => s + e.durationMinutes, 0) },
+                { label: 'Total Minutes', value: calendar.filter(e => e.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)).reduce((s, e) => s + (e.durationMinutes || 0), 0) },
                 { label: 'Rest Days', value: daysInMonth - calendar.filter(e => e.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)).length },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>

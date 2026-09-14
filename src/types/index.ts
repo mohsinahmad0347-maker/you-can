@@ -12,7 +12,13 @@ export type MuscleGroup =
   | 'Full Body' 
   | 'Mobility' 
   | 'Stretching' 
-  | 'Balance';
+  | 'Balance'
+  | 'Traps'
+  | 'Rotator Cuff'
+  | 'Forearms'
+  | 'Obliques'
+  | 'Hip Flexors'
+  | 'Upper Back';
 
 export type EquipmentType = 
   | 'Bodyweight' 
@@ -60,6 +66,7 @@ export interface Exercise {
   motionPath?: string;
   isFavorite?: boolean;
   published?: boolean;
+  category?: string;
 }
 
 export interface WorkoutExerciseItem {
@@ -102,6 +109,16 @@ export interface UserProfile {
   streakDays: number;
   activeMinutes: number;
   points: number;
+  bio?: string;
+  fitnessGoal?: string;
+  activityLevel?: string;
+  gender?: string;
+  age?: number;
+  height?: number;
+  weight?: number;
+  goalWeight?: number;
+  workoutsPerWeek?: number;
+  equipment?: EquipmentType[];
 }
 
 export interface PersonalRecord {
@@ -111,6 +128,7 @@ export interface PersonalRecord {
   category: string;
   date: string;
   safetyTip: string;
+  unit?: string;
 }
 
 export interface FitnessGoalItem {
@@ -122,6 +140,7 @@ export interface FitnessGoalItem {
   unit: string;
   deadline: string;
   completed: boolean;
+  priority?: 'high' | 'medium' | 'low';
 }
 
 export interface CalendarEntry {
@@ -164,6 +183,7 @@ export interface AdminUser {
   workoutsCompleted: number;
   lastActive: string;
   role: string;
+  lastLogin?: string;
 }
 
 export interface ActivityLog {
@@ -177,10 +197,12 @@ export interface ActivityLog {
 
 export interface SystemHealthItem {
   name: string;
-  status: 'Operational' | 'Degraded' | 'Downtime';
+  service?: string;
+  status: 'Operational' | 'Degraded' | 'Downtime' | 'healthy';
   latency: string;
   uptime: string;
   lastChecked: string;
+  detail?: string;
 }
 
 export type AdminRole = 'Super Admin' | 'Content Admin' | 'Analytics Admin' | 'Support Admin';

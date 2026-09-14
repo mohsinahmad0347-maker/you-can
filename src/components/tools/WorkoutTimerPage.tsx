@@ -22,7 +22,7 @@ export const WorkoutTimerPage: React.FC = () => {
   const [workTime, setWorkTime] = useState(30);
   const [restTime, setRestTime] = useState(10);
   const [isRest, setIsRest] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isRunning) {
