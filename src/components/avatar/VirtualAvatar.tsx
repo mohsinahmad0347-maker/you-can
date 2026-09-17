@@ -4,9 +4,7 @@ import {
   Play, 
   Pause, 
   RotateCcw, 
-  Eye, 
-  Zap, 
-  Sliders, 
+  Zap,
   FlipHorizontal,
   Maximize2
 } from 'lucide-react';
@@ -21,11 +19,11 @@ interface VirtualAvatarProps {
 }
 
 export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
-  biomechanicsKey = 'squat',
-  targetMuscle = 'Legs',
-  exerciseName = 'Exercise Demonstration',
+  biomechanicsKey = 'shoulder_press',
+  targetMuscle = 'Shoulders',
+  exerciseName = 'Seated Dumbbell Shoulder Press',
   className = '',
-  height = '420px',
+  height = '500px',
   interactive = true,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -35,35 +33,32 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
   const [speed, setSpeed] = useState<number>(1.0);
   const [cameraView, setCameraView] = useState<'front' | 'side' | 'back' | 'threeQuarter'>('threeQuarter');
   const [isMirrored, setIsMirrored] = useState<boolean>(false);
-  const [showJoints, setShowJoints] = useState<boolean>(true);
-  const [showMuscles, setShowMuscles] = useState<boolean>(true);
-  const [progressPhase, setProgressPhase] = useState<'START' | 'MOVEMENT' | 'PEAK' | 'RETURN'>('START');
+  const [showTechnique, setShowTechnique] = useState<boolean>(false);
+  const [progressPhase, setProgressPhase] = useState<'START' | 'PRESS' | 'PEAK' | 'LOWER'>('START');
 
-  // Three.js object references held in ref to avoid re-instantiation
+  // Three.js object references
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const modelGroupRef = useRef<THREE.Group | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
 
-  // Joint nodes and body segment references
-  const jointsRef = useRef<{
-    pelvis?: THREE.Group;
-    spine?: THREE.Group;
-    chest?: THREE.Group;
-    head?: THREE.Mesh;
-    leftShoulder?: THREE.Group;
-    rightShoulder?: THREE.Group;
-    leftElbow?: THREE.Group;
-    rightElbow?: THREE.Group;
-    leftHip?: THREE.Group;
-    rightHip?: THREE.Group;
-    leftKnee?: THREE.Group;
-    rightKnee?: THREE.Group;
-    barbell?: THREE.Group;
-    jointMarkers?: THREE.Mesh[];
-    muscleMeshes?: THREE.Mesh[];
-    motionArrow?: THREE.Group;
+  // Character body part references
+  const bodyRef = useRef<{
+    head?: THREE.Group;
+    torso?: THREE.Group;
+    leftArm?: THREE.Group;
+    rightArm?: THREE.Group;
+    leftForearm?: THREE.Group;
+    rightForearm?: THREE.Group;
+    leftLeg?: THREE.Group;
+    rightLeg?: THREE.Group;
+    leftFoot?: THREE.Group;
+    rightFoot?: THREE.Group;
+    leftDumbbell?: THREE.Group;
+    rightDumbbell?: THREE.Group;
+    bench?: THREE.Group;
+    techniqueArrows?: THREE.Group[];
   }>({});
 
   const timeRef = useRef<number>(0);
@@ -72,68 +67,48 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
 
   // Camera targets for presets
   const cameraAngles = {
-    front: { x: 0, y: 1.1, z: 3.2 },
-    side: { x: 3.2, y: 1.1, z: 0.1 },
-    back: { x: 0, y: 1.1, z: -3.2 },
-    threeQuarter: { x: 2.2, y: 1.4, z: 2.4 },
+    front: { x: 0, y: 1.2, z: 3.5 },
+    side: { x: 3.5, y: 1.2, z: 0.1 },
+    back: { x: 0, y: 1.2, z: -3.5 },
+    threeQuarter: { x: 2.5, y: 1.5, z: 2.8 },
   };
 
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
-    // 1. Scene setup
+    // 1. Scene setup with pastel pink/lavender background
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    scene.background = new THREE.Color(0x161618);
+    scene.background = new THREE.Color(0xE8D5E7); // Pastel pink/lavender
 
-    // Subtle grid platform with glow
-    const gridHelper = new THREE.GridHelper(6, 20, 0xff5722, 0x2a2a2e);
-    gridHelper.position.y = -0.01;
-    scene.add(gridHelper);
-
-    // Circular neon training mat
-    const matGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.02, 32);
-    const matMat = new THREE.MeshStandardMaterial({ 
-      color: 0x1f1f23, 
-      roughness: 0.8,
-      metalness: 0.2
-    });
-    const matMesh = new THREE.Mesh(matGeo, matMat);
-    matMesh.position.y = -0.01;
-    scene.add(matMesh);
-
-    // Outer neon ring
-    const ringGeo = new THREE.RingGeometry(1.58, 1.62, 48);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xff5722, side: THREE.DoubleSide });
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh.rotation.x = Math.PI / 2;
-    ringMesh.position.y = 0.005;
-    scene.add(ringMesh);
-
-    // 2. Lighting setup
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    // 2. Professional studio lighting setup
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
-    dirLight1.position.set(3, 5, 4);
-    scene.add(dirLight1);
+    // Soft key light from front-left
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    keyLight.position.set(3, 4, 3);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
 
-    const dirLight2 = new THREE.DirectionalLight(0x00ff66, 0.4);
-    dirLight2.position.set(-3, 3, -3);
-    scene.add(dirLight2);
+    // Soft fill light from front-right
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    fillLight.position.set(-3, 3, 3);
+    scene.add(fillLight);
 
-    const accentRimLight = new THREE.PointLight(0xff5722, 1.5, 8);
-    accentRimLight.position.set(0, 2.5, 0);
-    scene.add(accentRimLight);
+    // Rim light from behind for depth
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    rimLight.position.set(0, 3, -3);
+    scene.add(rimLight);
 
     // 3. Camera setup
     const width = container.clientWidth || 400;
-    const heightPx = container.clientHeight || 420;
+    const heightPx = container.clientHeight || 500;
     const camera = new THREE.PerspectiveCamera(45, width / heightPx, 0.1, 50);
     const initTarget = cameraAngles[cameraView];
     camera.position.set(initTarget.x, initTarget.y, initTarget.z);
-    camera.lookAt(0, 0.9, 0);
+    camera.lookAt(0, 0.8, 0);
     cameraRef.current = camera;
 
     // 4. Renderer setup
@@ -141,253 +116,400 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
     renderer.setSize(width, heightPx);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 5. Build Articulated Athletic Humanoid Model
+    // 5. Materials for premium cartoon aesthetic
+    const skinMaterial = new THREE.MeshStandardMaterial({
+      color: 0xDEB887, // Warm skin tone
+      roughness: 0.6,
+      metalness: 0.0,
+    });
+
+    const hairMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2C1810, // Dark brown/black hair
+      roughness: 0.8,
+      metalness: 0.0,
+    });
+
+    const shirtMaterial = new THREE.MeshStandardMaterial({
+      color: 0x40E0D0, // Turquoise/cyan
+      roughness: 0.7,
+      metalness: 0.0,
+    });
+
+    const shortsMaterial = new THREE.MeshStandardMaterial({
+      color: 0xFF69B4, // Bright pink
+      roughness: 0.7,
+      metalness: 0.0,
+    });
+
+    const shoesMaterial = new THREE.MeshStandardMaterial({
+      color: 0xADFF2F, // Lime green
+      roughness: 0.6,
+      metalness: 0.0,
+    });
+
+    const benchMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2C2C2C, // Dark charcoal
+      roughness: 0.4,
+      metalness: 0.3,
+    });
+
+    const dumbbellMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1a, // Dark charcoal/black
+      roughness: 0.3,
+      metalness: 0.7,
+    });
+
+    const techniqueArrowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00BFFF,
+      transparent: true,
+      opacity: 0.8,
+    });
+
+    // 6. Build character model
     const modelGroup = new THREE.Group();
     modelGroupRef.current = modelGroup;
     scene.add(modelGroup);
 
-    // Materials
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x3a3b40,
-      roughness: 0.5,
-      metalness: 0.3,
-    });
+    // HEAD with facial features
+    const headGroup = new THREE.Group();
+    headGroup.position.y = 1.55;
+    modelGroup.add(headGroup);
 
-    const activeMuscleMat = new THREE.MeshStandardMaterial({
-      color: 0xff5722,
-      emissive: 0xff5722,
-      emissiveIntensity: 0.6,
-      roughness: 0.3,
-    });
+    // Head base (slightly oversized for cartoon look)
+    const headGeo = new THREE.SphereGeometry(0.18, 32, 32);
+    const head = new THREE.Mesh(headGeo, skinMaterial);
+    head.scale.set(1.1, 1.0, 0.95);
+    headGroup.add(head);
 
-    const jointMat = new THREE.MeshStandardMaterial({
-      color: 0x00ff66,
-      emissive: 0x00ff66,
-      emissiveIntensity: 0.8,
-    });
+    // Hair (short dark hair)
+    const hairGeo = new THREE.SphereGeometry(0.19, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+    const hair = new THREE.Mesh(hairGeo, hairMaterial);
+    hair.position.y = 0.02;
+    hair.scale.set(1.05, 0.9, 1.0);
+    headGroup.add(hair);
 
-    const jointMarkers: THREE.Mesh[] = [];
-    const muscleMeshes: THREE.Mesh[] = [];
+    // Hair top styling
+    const hairTopGeo = new THREE.SphereGeometry(0.15, 16, 16);
+    const hairTop = new THREE.Mesh(hairTopGeo, hairMaterial);
+    hairTop.position.y = 0.12;
+    hairTop.scale.set(1.0, 0.6, 0.9);
+    headGroup.add(hairTop);
 
-    const createJointMarker = (parent: THREE.Object3D) => {
-      const jGeo = new THREE.SphereGeometry(0.045, 12, 12);
-      const jMesh = new THREE.Mesh(jGeo, jointMat);
-      parent.add(jMesh);
-      jointMarkers.push(jMesh);
-      return jMesh;
-    };
+    // Beard (short, neatly shaped)
+    const beardGeo = new THREE.SphereGeometry(0.12, 16, 16, 0, Math.PI * 2, 0, Math.PI / 3);
+    const beard = new THREE.Mesh(beardGeo, hairMaterial);
+    beard.position.set(0, -0.05, 0.05);
+    beard.scale.set(1.2, 0.8, 0.6);
+    headGroup.add(beard);
 
-    // PELVIS
-    const pelvis = new THREE.Group();
-    pelvis.position.y = 0.95;
-    modelGroup.add(pelvis);
+    // Eyes (simple dark expressive eyes)
+    const eyeGeo = new THREE.SphereGeometry(0.025, 16, 16);
+    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.3 });
+    
+    const leftEye = new THREE.Mesh(eyeGeo, eyeMaterial);
+    leftEye.position.set(-0.05, 0.02, 0.15);
+    headGroup.add(leftEye);
 
-    const pelvisMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.16, 0.14, 0.18, 16),
-      targetMuscle === 'Glutes' || targetMuscle === 'Legs' ? activeMuscleMat : bodyMat
-    );
-    pelvis.add(pelvisMesh);
-    if (targetMuscle === 'Glutes') muscleMeshes.push(pelvisMesh);
+    const rightEye = new THREE.Mesh(eyeGeo, eyeMaterial);
+    rightEye.position.set(0.05, 0.02, 0.15);
+    headGroup.add(rightEye);
 
-    // SPINE & TORSO
-    const spine = new THREE.Group();
-    spine.position.y = 0.12;
-    pelvis.add(spine);
+    // Nose (simple stylized)
+    const noseGeo = new THREE.ConeGeometry(0.02, 0.04, 8);
+    const nose = new THREE.Mesh(noseGeo, skinMaterial);
+    nose.position.set(0, -0.02, 0.16);
+    nose.rotation.x = Math.PI;
+    headGroup.add(nose);
 
-    const absMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.14, 0.22, 16),
-      targetMuscle === 'Core' ? activeMuscleMat : bodyMat
-    );
-    spine.add(absMesh);
-    if (targetMuscle === 'Core') muscleMeshes.push(absMesh);
+    // Mouth (simple friendly smile)
+    const mouthGeo = new THREE.TorusGeometry(0.03, 0.008, 8, 16, Math.PI);
+    const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.5 });
+    const mouth = new THREE.Mesh(mouthGeo, mouthMaterial);
+    mouth.position.set(0, -0.08, 0.14);
+    mouth.rotation.x = Math.PI;
+    headGroup.add(mouth);
 
-    // CHEST & SHOULDERS
-    const chest = new THREE.Group();
-    chest.position.y = 0.18;
-    spine.add(chest);
+    // TORSO with clothing
+    const torsoGroup = new THREE.Group();
+    torsoGroup.position.y = 1.25;
+    modelGroup.add(torsoGroup);
 
-    const chestMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.38, 0.26, 0.22),
-      targetMuscle === 'Chest' || targetMuscle === 'Back' ? activeMuscleMat : bodyMat
-    );
-    chest.add(chestMesh);
-    if (targetMuscle === 'Chest' || targetMuscle === 'Back') muscleMeshes.push(chestMesh);
+    // Torso body
+    const torsoGeo = new THREE.BoxGeometry(0.45, 0.5, 0.28);
+    const torso = new THREE.Mesh(torsoGeo, skinMaterial);
+    torsoGroup.add(torso);
 
-    // HEAD & NECK
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.1, 12), bodyMat);
-    neck.position.y = 0.18;
-    chest.add(neck);
+    // Turquoise sleeveless shirt
+    const shirtGeo = new THREE.BoxGeometry(0.48, 0.45, 0.30);
+    const shirt = new THREE.Mesh(shirtGeo, shirtMaterial);
+    shirt.position.y = -0.02;
+    torsoGroup.add(shirt);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), bodyMat);
-    head.position.y = 0.14;
-    neck.add(head);
+    // Neck
+    const neckGeo = new THREE.CylinderGeometry(0.07, 0.08, 0.12, 16);
+    const neck = new THREE.Mesh(neckGeo, skinMaterial);
+    neck.position.y = 0.28;
+    torsoGroup.add(neck);
 
-    // LEFT ARM (Shoulder -> Elbow -> Wrist)
+    // Shoulders (for arm attachment)
     const leftShoulder = new THREE.Group();
-    leftShoulder.position.set(-0.24, 0.08, 0);
-    chest.add(leftShoulder);
-    createJointMarker(leftShoulder);
+    leftShoulder.position.set(-0.26, 0.15, 0);
+    torsoGroup.add(leftShoulder);
 
-    const leftUpperArm = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.05, 0.28, 12),
-      targetMuscle === 'Shoulders' ? activeMuscleMat : bodyMat
-    );
-    leftUpperArm.position.y = -0.14;
-    leftShoulder.add(leftUpperArm);
-    if (targetMuscle === 'Shoulders') muscleMeshes.push(leftUpperArm);
-
-    const leftElbow = new THREE.Group();
-    leftElbow.position.y = -0.16;
-    leftUpperArm.add(leftElbow);
-    createJointMarker(leftElbow);
-
-    const leftForearm = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.04, 0.26, 12),
-      targetMuscle === 'Biceps' || targetMuscle === 'Triceps' ? activeMuscleMat : bodyMat
-    );
-    leftForearm.position.y = -0.13;
-    leftElbow.add(leftForearm);
-    if (targetMuscle === 'Biceps' || targetMuscle === 'Triceps') muscleMeshes.push(leftForearm);
-
-    // RIGHT ARM (Shoulder -> Elbow -> Wrist)
     const rightShoulder = new THREE.Group();
-    rightShoulder.position.set(0.24, 0.08, 0);
-    chest.add(rightShoulder);
-    createJointMarker(rightShoulder);
+    rightShoulder.position.set(0.26, 0.15, 0);
+    torsoGroup.add(rightShoulder);
 
-    const rightUpperArm = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.05, 0.28, 12),
-      targetMuscle === 'Shoulders' ? activeMuscleMat : bodyMat
-    );
-    rightUpperArm.position.y = -0.14;
-    rightShoulder.add(rightUpperArm);
-    if (targetMuscle === 'Shoulders') muscleMeshes.push(rightUpperArm);
+    // ARMS
+    // Left upper arm
+    const leftArmGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.35, 16);
+    const leftArm = new THREE.Mesh(leftArmGeo, skinMaterial);
+    leftArm.position.y = -0.175;
+    leftShoulder.add(leftArm);
 
-    const rightElbow = new THREE.Group();
-    rightElbow.position.y = -0.16;
-    rightUpperArm.add(rightElbow);
-    createJointMarker(rightElbow);
+    // Left forearm
+    const leftForearmGroup = new THREE.Group();
+    leftForearmGroup.position.y = -0.35;
+    leftArm.add(leftForearmGroup);
 
-    const rightForearm = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.04, 0.26, 12),
-      targetMuscle === 'Biceps' || targetMuscle === 'Triceps' ? activeMuscleMat : bodyMat
-    );
-    rightForearm.position.y = -0.13;
-    rightElbow.add(rightForearm);
-    if (targetMuscle === 'Biceps' || targetMuscle === 'Triceps') muscleMeshes.push(rightForearm);
+    const leftForearmGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.32, 16);
+    const leftForearm = new THREE.Mesh(leftForearmGeo, skinMaterial);
+    leftForearm.position.y = -0.16;
+    leftForearmGroup.add(leftForearm);
 
-    // LEFT LEG (Hip -> Knee -> Ankle)
-    const leftHip = new THREE.Group();
-    leftHip.position.set(-0.11, -0.08, 0);
-    pelvis.add(leftHip);
-    createJointMarker(leftHip);
+    // Left hand
+    const leftHandGeo = new THREE.SphereGeometry(0.05, 16, 16);
+    const leftHand = new THREE.Mesh(leftHandGeo, skinMaterial);
+    leftHand.position.y = -0.34;
+    leftForearmGroup.add(leftHand);
 
-    const leftThigh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.06, 0.44, 14),
-      targetMuscle === 'Legs' ? activeMuscleMat : bodyMat
-    );
-    leftThigh.position.y = -0.22;
-    leftHip.add(leftThigh);
-    if (targetMuscle === 'Legs') muscleMeshes.push(leftThigh);
+    // Right upper arm
+    const rightArmGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.35, 16);
+    const rightArm = new THREE.Mesh(rightArmGeo, skinMaterial);
+    rightArm.position.y = -0.175;
+    rightShoulder.add(rightArm);
 
-    const leftKnee = new THREE.Group();
-    leftKnee.position.y = -0.22;
-    leftThigh.add(leftKnee);
-    createJointMarker(leftKnee);
+    // Right forearm
+    const rightForearmGroup = new THREE.Group();
+    rightForearmGroup.position.y = -0.35;
+    rightArm.add(rightForearmGroup);
 
-    const leftCalf = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.04, 0.42, 12), bodyMat);
-    leftCalf.position.y = -0.21;
-    leftKnee.add(leftCalf);
+    const rightForearmGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.32, 16);
+    const rightForearm = new THREE.Mesh(rightForearmGeo, skinMaterial);
+    rightForearm.position.y = -0.16;
+    rightForearmGroup.add(rightForearm);
 
-    // RIGHT LEG (Hip -> Knee -> Ankle)
-    const rightHip = new THREE.Group();
-    rightHip.position.set(0.11, -0.08, 0);
-    pelvis.add(rightHip);
-    createJointMarker(rightHip);
+    // Right hand
+    const rightHandGeo = new THREE.SphereGeometry(0.05, 16, 16);
+    const rightHand = new THREE.Mesh(rightHandGeo, skinMaterial);
+    rightHand.position.y = -0.34;
+    rightForearmGroup.add(rightHand);
 
-    const rightThigh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.06, 0.44, 14),
-      targetMuscle === 'Legs' ? activeMuscleMat : bodyMat
-    );
-    rightThigh.position.y = -0.22;
-    rightHip.add(rightThigh);
-    if (targetMuscle === 'Legs') muscleMeshes.push(rightThigh);
+    // LEGS
+    const hipsGroup = new THREE.Group();
+    hipsGroup.position.y = 0.95;
+    modelGroup.add(hipsGroup);
 
-    const rightKnee = new THREE.Group();
-    rightKnee.position.y = -0.22;
-    rightThigh.add(rightKnee);
-    createJointMarker(rightKnee);
+    // Pink shorts
+    const shortsGeo = new THREE.BoxGeometry(0.42, 0.28, 0.26);
+    const shorts = new THREE.Mesh(shortsGeo, shortsMaterial);
+    shorts.position.y = -0.1;
+    hipsGroup.add(shorts);
 
-    const rightCalf = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.04, 0.42, 12), bodyMat);
-    rightCalf.position.y = -0.21;
-    rightKnee.add(rightCalf);
+    // Left leg
+    const leftLegGroup = new THREE.Group();
+    leftLegGroup.position.set(-0.12, -0.22, 0);
+    hipsGroup.add(leftLegGroup);
 
-    // BARBELL / WEIGHT PROP
-    const barbell = new THREE.Group();
-    const barMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.02, 0.02, 1.4, 16),
-      new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.9, roughness: 0.2 })
-    );
-    barMesh.rotation.z = Math.PI / 2;
-    barbell.add(barMesh);
+    const leftThighGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.42, 16);
+    const leftThigh = new THREE.Mesh(leftThighGeo, skinMaterial);
+    leftThigh.position.y = -0.21;
+    leftLegGroup.add(leftThigh);
 
-    // Plates on both ends
-    const plateMat = new THREE.MeshStandardMaterial({ color: 0xff5722, metalness: 0.5, roughness: 0.4 });
-    const plateGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.04, 24);
-    const leftPlate = new THREE.Mesh(plateGeo, plateMat);
-    leftPlate.rotation.z = Math.PI / 2;
-    leftPlate.position.x = -0.58;
-    barbell.add(leftPlate);
+    const leftLowerLegGroup = new THREE.Group();
+    leftLowerLegGroup.position.y = -0.42;
+    leftThigh.add(leftLowerLegGroup);
 
-    const rightPlate = new THREE.Mesh(plateGeo, plateMat);
-    rightPlate.rotation.z = Math.PI / 2;
-    rightPlate.position.x = 0.58;
-    barbell.add(rightPlate);
+    const leftCalfGeo = new THREE.CylinderGeometry(0.07, 0.05, 0.40, 16);
+    const leftCalf = new THREE.Mesh(leftCalfGeo, skinMaterial);
+    leftCalf.position.y = -0.20;
+    leftLowerLegGroup.add(leftCalf);
 
-    barbell.visible = ['bench_press', 'squat', 'overhead_press', 'barbell_row', 'deadlift', 'bicep_curl'].includes(biomechanicsKey);
-    scene.add(barbell);
+    // Left foot with lime-green shoe
+    const leftFootGroup = new THREE.Group();
+    leftFootGroup.position.y = -0.40;
+    leftCalf.add(leftFootGroup);
 
-    // DIRECTIONAL MOTION ARROW
-    const motionArrow = new THREE.Group();
-    const arrowCone = new THREE.Mesh(
-      new THREE.ConeGeometry(0.08, 0.2, 16),
-      new THREE.MeshBasicMaterial({ color: 0x00ff66 })
-    );
-    arrowCone.position.y = 0.2;
-    motionArrow.add(arrowCone);
+    const leftFootGeo = new THREE.BoxGeometry(0.12, 0.08, 0.22);
+    const leftFoot = new THREE.Mesh(leftFootGeo, shoesMaterial);
+    leftFoot.position.set(0, -0.04, 0.04);
+    leftFootGroup.add(leftFoot);
 
-    const arrowShaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.02, 0.02, 0.3, 12),
-      new THREE.MeshBasicMaterial({ color: 0x00ff66 })
-    );
-    motionArrow.add(arrowShaft);
-    motionArrow.position.set(0.65, 1.1, 0);
-    scene.add(motionArrow);
+    // Right leg
+    const rightLegGroup = new THREE.Group();
+    rightLegGroup.position.set(0.12, -0.22, 0);
+    hipsGroup.add(rightLegGroup);
 
-    jointsRef.current = {
-      pelvis,
-      spine,
-      chest,
-      head,
-      leftShoulder,
-      rightShoulder,
-      leftElbow,
-      rightElbow,
-      leftHip,
-      rightHip,
-      leftKnee,
-      rightKnee,
-      barbell,
-      jointMarkers,
-      muscleMeshes,
-      motionArrow,
+    const rightThighGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.42, 16);
+    const rightThigh = new THREE.Mesh(rightThighGeo, skinMaterial);
+    rightThigh.position.y = -0.21;
+    rightLegGroup.add(rightThigh);
+
+    const rightLowerLegGroup = new THREE.Group();
+    rightLowerLegGroup.position.y = -0.42;
+    rightThigh.add(rightLowerLegGroup);
+
+    const rightCalfGeo = new THREE.CylinderGeometry(0.07, 0.05, 0.40, 16);
+    const rightCalf = new THREE.Mesh(rightCalfGeo, skinMaterial);
+    rightCalf.position.y = -0.20;
+    rightLowerLegGroup.add(rightCalf);
+
+    // Right foot with lime-green shoe
+    const rightFootGroup = new THREE.Group();
+    rightFootGroup.position.y = -0.40;
+    rightCalf.add(rightFootGroup);
+
+    const rightFootGeo = new THREE.BoxGeometry(0.12, 0.08, 0.22);
+    const rightFoot = new THREE.Mesh(rightFootGeo, shoesMaterial);
+    rightFoot.position.set(0, -0.04, 0.04);
+    rightFootGroup.add(rightFoot);
+
+    // ADJUSTABLE GYM BENCH
+    const benchGroup = new THREE.Group();
+    benchGroup.position.set(0, 0.35, 0);
+    scene.add(benchGroup);
+
+    // Bench seat
+    const seatGeo = new THREE.BoxGeometry(0.6, 0.08, 0.35);
+    const seat = new THREE.Mesh(seatGeo, benchMaterial);
+    seat.position.y = 0.35;
+    benchGroup.add(seat);
+
+    // Bench backrest (adjustable angle)
+    const backrestGeo = new THREE.BoxGeometry(0.6, 0.5, 0.08);
+    const backrest = new THREE.Mesh(backrestGeo, benchMaterial);
+    backrest.position.set(0, 0.65, -0.15);
+    backrest.rotation.x = Math.PI / 12; // Slight angle
+    benchGroup.add(backrest);
+
+    // Bench frame
+    const frameMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1a,
+      roughness: 0.3,
+      metalness: 0.8,
+    });
+
+    // Front legs
+    const frontLegGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.35, 8);
+    const leftFrontLeg = new THREE.Mesh(frontLegGeo, frameMaterial);
+    leftFrontLeg.position.set(-0.25, 0.175, 0.1);
+    benchGroup.add(leftFrontLeg);
+
+    const rightFrontLeg = new THREE.Mesh(frontLegGeo, frameMaterial);
+    rightFrontLeg.position.set(0.25, 0.175, 0.1);
+    benchGroup.add(rightFrontLeg);
+
+    // Back legs
+    const backLegGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.45, 8);
+    const leftBackLeg = new THREE.Mesh(backLegGeo, frameMaterial);
+    leftBackLeg.position.set(-0.25, 0.225, -0.15);
+    benchGroup.add(leftBackLeg);
+
+    const rightBackLeg = new THREE.Mesh(backLegGeo, frameMaterial);
+    rightBackLeg.position.set(0.25, 0.225, -0.15);
+    benchGroup.add(rightBackLeg);
+
+    // DUMBBELLS
+    // Left dumbbell
+    const leftDumbbellGroup = new THREE.Group();
+    scene.add(leftDumbbellGroup);
+
+    const handleGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.2, 12);
+    const leftHandle = new THREE.Mesh(handleGeo, dumbbellMaterial);
+    leftHandle.rotation.z = Math.PI / 2;
+    leftDumbbellGroup.add(leftHandle);
+
+    const weightPlateGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.04, 16);
+    const leftWeight1 = new THREE.Mesh(weightPlateGeo, dumbbellMaterial);
+    leftWeight1.rotation.z = Math.PI / 2;
+    leftWeight1.position.x = -0.12;
+    leftDumbbellGroup.add(leftWeight1);
+
+    const leftWeight2 = new THREE.Mesh(weightPlateGeo, dumbbellMaterial);
+    leftWeight2.rotation.z = Math.PI / 2;
+    leftWeight2.position.x = 0.12;
+    leftDumbbellGroup.add(leftWeight2);
+
+    // Right dumbbell
+    const rightDumbbellGroup = new THREE.Group();
+    scene.add(rightDumbbellGroup);
+
+    const rightHandle = new THREE.Mesh(handleGeo, dumbbellMaterial);
+    rightHandle.rotation.z = Math.PI / 2;
+    rightDumbbellGroup.add(rightHandle);
+
+    const rightWeight1 = new THREE.Mesh(weightPlateGeo, dumbbellMaterial);
+    rightWeight1.rotation.z = Math.PI / 2;
+    rightWeight1.position.x = -0.12;
+    rightDumbbellGroup.add(rightWeight1);
+
+    const rightWeight2 = new THREE.Mesh(weightPlateGeo, dumbbellMaterial);
+    rightWeight2.rotation.z = Math.PI / 2;
+    rightWeight2.position.x = 0.12;
+    rightDumbbellGroup.add(rightWeight2);
+
+    // Technique arrows
+    const techniqueArrows: THREE.Group[] = [];
+    
+    const createArrow = (position: THREE.Vector3, direction: THREE.Vector3) => {
+      const arrowGroup = new THREE.Group();
+      arrowGroup.position.copy(position);
+      
+      const shaftGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.2, 8);
+      const shaft = new THREE.Mesh(shaftGeo, techniqueArrowMaterial);
+      shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+      arrowGroup.add(shaft);
+
+      const headGeo = new THREE.ConeGeometry(0.04, 0.08, 8);
+      const head = new THREE.Mesh(headGeo, techniqueArrowMaterial);
+      head.position.copy(direction.normalize().multiplyScalar(0.14));
+      head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+      arrowGroup.add(head);
+
+      arrowGroup.visible = false;
+      scene.add(arrowGroup);
+      techniqueArrows.push(arrowGroup);
+      return arrowGroup;
     };
 
-    // 6. Orbit Mouse Drag Interaction
+    // Create upward arrows for shoulder press
+    const leftArrow = createArrow(new THREE.Vector3(-0.5, 1.2, 0.3), new THREE.Vector3(0, 1, 0));
+    const rightArrow = createArrow(new THREE.Vector3(0.5, 1.2, 0.3), new THREE.Vector3(0, 1, 0));
+
+    // Store references
+    bodyRef.current = {
+      head: headGroup,
+      torso: torsoGroup,
+      leftArm: leftShoulder,
+      rightArm: rightShoulder,
+      leftForearm: leftForearmGroup,
+      rightForearm: rightForearmGroup,
+      leftLeg: leftLegGroup,
+      rightLeg: rightLegGroup,
+      leftFoot: leftFootGroup,
+      rightFoot: rightFootGroup,
+      leftDumbbell: leftDumbbellGroup,
+      rightDumbbell: rightDumbbellGroup,
+      bench: benchGroup,
+      techniqueArrows: techniqueArrows,
+    };
+
+    // 7. Orbit Mouse Drag Interaction
     const onMouseDown = (e: MouseEvent) => {
       isMouseDownRef.current = true;
       previousMousePositionRef.current = { x: e.clientX, y: e.clientY };
@@ -410,8 +532,8 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
       const zoomFactor = e.deltaY * 0.002;
       cameraRef.current.position.z = THREE.MathUtils.clamp(
         cameraRef.current.position.z + zoomFactor,
-        1.5,
-        5.0
+        2.0,
+        6.0
       );
     };
 
@@ -421,7 +543,7 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
     window.addEventListener('mouseup', onMouseUp);
     domEl.addEventListener('wheel', onWheel, { passive: false });
 
-    // 7. Animation Kinematic Loop
+    // 8. Animation Loop
     const clock = new THREE.Clock();
 
     const animate = () => {
@@ -429,184 +551,122 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
 
       const delta = clock.getDelta();
       if (isPlaying) {
-        timeRef.current += delta * speed * 2.8;
+        timeRef.current += delta * speed * 1.5;
       }
 
       const t = timeRef.current;
       const cycle = (Math.sin(t) + 1) / 2; // 0 to 1 smooth sine cycle
 
       // Determine movement phase
-      if (cycle < 0.2) setProgressPhase('START');
-      else if (cycle < 0.75) setProgressPhase('MOVEMENT');
-      else if (cycle < 0.95) setProgressPhase('PEAK');
-      else setProgressPhase('RETURN');
+      if (cycle < 0.15) setProgressPhase('START');
+      else if (cycle < 0.5) setProgressPhase('PRESS');
+      else if (cycle < 0.7) setProgressPhase('PEAK');
+      else setProgressPhase('LOWER');
 
-      // Update directional arrow
-      if (motionArrow) {
-        const vel = Math.cos(t);
-        motionArrow.rotation.x = vel > 0 ? 0 : Math.PI;
-        motionArrow.position.y = 1.1 + Math.sin(t) * 0.15;
-      }
+      const {
+        head,
+        torso,
+        leftArm,
+        rightArm,
+        leftForearm,
+        rightForearm,
+        leftLeg,
+        rightLeg,
+        leftFoot,
+        rightFoot,
+        leftDumbbell,
+        rightDumbbell,
+        bench,
+        techniqueArrows,
+      } = bodyRef.current;
 
-      // Biomechanical kinematics per exercise key
-      const { 
-        pelvis, 
-        leftHip, 
-        rightHip, 
-        leftKnee, 
-        rightKnee, 
-        leftShoulder, 
-        rightShoulder, 
-        leftElbow, 
-        rightElbow, 
-        spine, 
-        chest, 
-        barbell: bar 
-      } = jointsRef.current;
+      if (head && torso && leftArm && rightArm && leftForearm && rightForearm && 
+          leftLeg && rightLeg && leftFoot && rightFoot && leftDumbbell && rightDumbbell) {
+        
+        // Reset rotations
+        torso.rotation.set(0, 0, 0);
+        leftArm.rotation.set(0, 0, 0);
+        rightArm.rotation.set(0, 0, 0);
+        leftForearm.rotation.set(0, 0, 0);
+        rightForearm.rotation.set(0, 0, 0);
+        leftLeg.rotation.set(0, 0, 0);
+        rightLeg.rotation.set(0, 0, 0);
+        leftFoot.rotation.set(0, 0, 0);
+        rightFoot.rotation.set(0, 0, 0);
 
-      if (pelvis && leftHip && rightHip && leftKnee && rightKnee && leftShoulder && rightShoulder && leftElbow && rightElbow && spine && chest) {
-        // Reset base transforms
-        pelvis.rotation.set(0, 0, 0);
-        spine.rotation.set(0, 0, 0);
-        chest.rotation.set(0, 0, 0);
-        leftHip.rotation.set(0, 0, 0);
-        rightHip.rotation.set(0, 0, 0);
-        leftKnee.rotation.set(0, 0, 0);
-        rightKnee.rotation.set(0, 0, 0);
-        leftShoulder.rotation.set(0, 0, 0);
-        rightShoulder.rotation.set(0, 0, 0);
-        leftElbow.rotation.set(0, 0, 0);
-        rightElbow.rotation.set(0, 0, 0);
+        if (biomechanicsKey === 'shoulder_press') {
+          // SEATED DUMBBELL SHOULDER PRESS
+          
+          // Character seated on bench
+          torso.position.y = 0.75;
+          torso.rotation.x = -Math.PI / 10; // Slight back lean
+          
+          // Legs: feet on floor, knees bent
+          leftLeg.rotation.x = 0.8;
+          rightLeg.rotation.x = 0.8;
+          leftFoot.rotation.x = -0.8;
+          rightFoot.rotation.x = -0.8;
 
-        if (biomechanicsKey === 'squat') {
-          // SQUAT: Hips descend, knees bend, torso leans slightly forward
-          const squatDepth = cycle * 0.42;
-          pelvis.position.y = 0.95 - squatDepth;
-          leftHip.rotation.x = -cycle * 1.35;
-          rightHip.rotation.x = -cycle * 1.35;
-          leftKnee.rotation.x = cycle * 1.7;
-          rightKnee.rotation.x = cycle * 1.7;
-          spine.rotation.x = cycle * 0.35;
+          // Head looking forward
+          head.rotation.x = Math.PI / 10;
 
-          // Hands support barbell across shoulders
-          leftShoulder.rotation.z = -Math.PI / 4;
-          rightShoulder.rotation.z = Math.PI / 4;
-          leftElbow.rotation.x = -Math.PI / 2;
-          rightElbow.rotation.x = -Math.PI / 2;
+          // Shoulder press animation
+          const pressHeight = cycle * 0.5; // 0 to 0.5 meters
+          
+          // Arms start at shoulder level, press upward
+          leftArm.rotation.z = -Math.PI / 4 - cycle * 0.3;
+          rightArm.rotation.z = Math.PI / 4 + cycle * 0.3;
+          
+          // Forearms extend
+          leftForearm.rotation.x = -(1 - cycle) * 1.2;
+          rightForearm.rotation.x = -(1 - cycle) * 1.2;
 
-          if (bar) {
-            bar.visible = true;
-            bar.position.set(0, pelvis.position.y + 0.46, -0.05);
+          // Dumbbells follow hands
+          leftDumbbell.position.set(
+            -0.5 + cycle * 0.1,
+            1.1 + pressHeight,
+            0.3 + cycle * 0.1
+          );
+          leftDumbbell.rotation.z = Math.PI / 2 - cycle * 0.5;
+
+          rightDumbbell.position.set(
+            0.5 - cycle * 0.1,
+            1.1 + pressHeight,
+            0.3 + cycle * 0.1
+          );
+          rightDumbbell.rotation.z = Math.PI / 2 + cycle * 0.5;
+
+          // Update technique arrows
+          if (techniqueArrows) {
+            techniqueArrows.forEach(arrow => {
+              arrow.visible = showTechnique;
+              arrow.position.y = 1.1 + pressHeight * 0.5;
+            });
           }
-        } else if (biomechanicsKey === 'pushup') {
-          // PUSHUP: Horizontal body, elbows flare at 45 degrees
-          pelvis.position.set(0, 0.26 + (1 - cycle) * 0.28, 0);
-          pelvis.rotation.x = -Math.PI / 2.05;
-          leftHip.rotation.x = 0.1;
-          rightHip.rotation.x = 0.1;
-
-          const armFold = (1 - cycle) * 1.25;
-          leftShoulder.rotation.set(0.3, 0.4, -0.4 - armFold * 0.4);
-          rightShoulder.rotation.set(0.3, -0.4, 0.4 + armFold * 0.4);
-          leftElbow.rotation.x = -armFold;
-          rightElbow.rotation.x = -armFold;
-
-          if (bar) bar.visible = false;
-        } else if (biomechanicsKey === 'bench_press') {
-          // BENCH PRESS: Supine position, pressing bar vertically
-          pelvis.position.set(0, 0.45, 0);
-          pelvis.rotation.x = -Math.PI / 2;
-          leftHip.rotation.x = 0.8;
-          rightHip.rotation.x = 0.8;
-          leftKnee.rotation.x = 1.3;
-          rightKnee.rotation.x = 1.3;
-
-          const pressExtension = (1 - cycle); // 0 = at chest, 1 = pressed high
-          leftShoulder.rotation.set(1.4 - pressExtension * 0.2, 0, -0.7 + pressExtension * 0.4);
-          rightShoulder.rotation.set(1.4 - pressExtension * 0.2, 0, 0.7 - pressExtension * 0.4);
-          leftElbow.rotation.x = -pressExtension * 1.35;
-          rightElbow.rotation.x = -pressExtension * 1.35;
-
-          if (bar) {
-            bar.visible = true;
-            bar.position.set(0, 0.65 + pressExtension * 0.35, 0.1);
-          }
-        } else if (biomechanicsKey === 'pullup') {
-          // PULLUP: Body hangs from bar, pulls up
-          const pullHeight = cycle * 0.45;
-          pelvis.position.y = 0.85 + pullHeight;
-          leftKnee.rotation.x = 0.4;
-          rightKnee.rotation.x = 0.4;
-
-          const pullFlex = cycle * 1.6;
-          leftShoulder.rotation.set(0, 0, -2.4 + pullFlex * 0.7);
-          rightShoulder.rotation.set(0, 0, 2.4 - pullFlex * 0.7);
-          leftElbow.rotation.x = -pullFlex;
-          rightElbow.rotation.x = -pullFlex;
-
-          if (bar) {
-            bar.visible = true;
-            bar.position.set(0, 1.85, 0);
-          }
-        } else if (biomechanicsKey === 'overhead_press') {
-          // OVERHEAD PRESS: Bar moves from clavicle to overhead
-          pelvis.position.y = 0.95;
-          const pressReach = cycle * 0.45;
-          leftShoulder.rotation.z = -0.5 - cycle * 1.6;
-          rightShoulder.rotation.z = 0.5 + cycle * 1.6;
-          leftElbow.rotation.x = -(1 - cycle) * 1.4;
-          rightElbow.rotation.x = -(1 - cycle) * 1.4;
-
-          if (bar) {
-            bar.visible = true;
-            bar.position.set(0, 1.4 + pressReach, 0.08);
-          }
-        } else if (biomechanicsKey === 'bicep_curl') {
-          // BICEP CURL: Forearms curl upward, elbows pinned
-          pelvis.position.y = 0.95;
-          const curlFlex = cycle * 2.2;
-          leftElbow.rotation.x = -curlFlex;
-          rightElbow.rotation.x = -curlFlex;
-
-          if (bar) {
-            bar.visible = true;
-            bar.position.set(0, 0.7 + cycle * 0.4, 0.25 + cycle * 0.1);
-          }
-        } else if (biomechanicsKey === 'lunge') {
-          // LUNGE: Staggered step, front and back knees bend to 90
-          pelvis.position.y = 0.95 - cycle * 0.35;
-          leftHip.rotation.x = -0.9 * cycle;
-          leftKnee.rotation.x = 1.4 * cycle;
-          rightHip.rotation.x = 0.7 * cycle;
-          rightKnee.rotation.x = 1.3 * cycle;
-          if (bar) bar.visible = false;
-        } else if (biomechanicsKey === 'lateral_raise') {
-          // LATERAL RAISE: Arms abduct to shoulder level
-          pelvis.position.y = 0.95;
-          const raise = cycle * 1.5;
-          leftShoulder.rotation.z = -raise;
-          rightShoulder.rotation.z = raise;
-          if (bar) bar.visible = false;
-        } else if (biomechanicsKey === 'plank') {
-          // ISOMETRIC PLANK: Rigid horizontal position
-          pelvis.position.set(0, 0.28, 0);
-          pelvis.rotation.x = -Math.PI / 2;
-          leftShoulder.rotation.set(0.3, 0, -0.4);
-          rightShoulder.rotation.set(0.3, 0, 0.4);
-          leftElbow.rotation.x = -1.5;
-          rightElbow.rotation.x = -1.5;
-          if (bar) bar.visible = false;
         } else {
-          // DEFAULT / MOBILITY: Athletic balanced breathing posture
-          pelvis.position.y = 0.95 + Math.sin(t * 0.7) * 0.02;
-          spine.rotation.x = Math.sin(t * 0.7) * 0.04;
-          leftShoulder.rotation.z = -0.3 + Math.sin(t) * 0.1;
-          rightShoulder.rotation.z = 0.3 - Math.sin(t) * 0.1;
-          if (bar) bar.visible = false;
+          // Default standing pose
+          torso.position.y = 1.0;
+          torso.rotation.set(0, 0, 0);
+          leftLeg.rotation.set(0, 0, 0);
+          rightLeg.rotation.set(0, 0, 0);
+          leftFoot.rotation.set(0, 0, 0);
+          rightFoot.rotation.set(0, 0, 0);
+          head.rotation.set(0, 0, 0);
+          
+          // Idle breathing animation
+          torso.position.y = 1.0 + Math.sin(t * 2) * 0.01;
+          
+          leftArm.rotation.z = -0.3 + Math.sin(t) * 0.05;
+          rightArm.rotation.z = 0.3 - Math.sin(t) * 0.05;
+          leftForearm.rotation.x = -0.2;
+          rightForearm.rotation.x = -0.2;
+
+          leftDumbbell.position.set(-0.4, 0.8, 0.3);
+          rightDumbbell.position.set(0.4, 0.8, 0.3);
         }
       }
 
-      // Mirror mode flip
+      // Mirror mode
       if (modelGroupRef.current) {
         modelGroupRef.current.scale.x = isMirrored ? -1 : 1;
       }
@@ -616,7 +676,7 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
 
     animate();
 
-    // 8. Handle Resize
+    // 9. Handle Resize
     const handleResize = () => {
       if (!container || !cameraRef.current || !rendererRef.current) return;
       const newWidth = container.clientWidth;
@@ -640,7 +700,7 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
       }
       renderer.dispose();
     };
-  }, [biomechanicsKey, targetMuscle, isMirrored]);
+  }, [biomechanicsKey, isMirrored, showTechnique]);
 
   // Handle Camera View Presets
   const setCameraPreset = (view: 'front' | 'side' | 'back' | 'threeQuarter') => {
@@ -648,25 +708,8 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
     if (!cameraRef.current) return;
     const target = cameraAngles[view];
     cameraRef.current.position.set(target.x, target.y, target.z);
-    cameraRef.current.lookAt(0, 0.9, 0);
+    cameraRef.current.lookAt(0, 0.8, 0);
   };
-
-  // Toggle joint markers visibility
-  useEffect(() => {
-    jointsRef.current.jointMarkers?.forEach(m => {
-      m.visible = showJoints;
-    });
-  }, [showJoints]);
-
-  // Toggle muscle activation highlights
-  useEffect(() => {
-    jointsRef.current.muscleMeshes?.forEach(m => {
-      const mat = m.material as THREE.MeshStandardMaterial;
-      if (mat) {
-        mat.emissiveIntensity = showMuscles ? 0.7 : 0.05;
-      }
-    });
-  }, [showMuscles]);
 
   const restartAnimation = () => {
     timeRef.current = 0;
@@ -674,36 +717,36 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
   };
 
   return (
-    <div className={`relative flex flex-col bg-[#161618] rounded-2xl overflow-hidden border border-[#2a2a2e] shadow-2xl ${className}`}>
-      {/* Top Telemetry Header */}
+    <div className={`relative flex flex-col bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-2xl ${className}`}>
+      {/* Top Header */}
       <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
-          <span className="px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase rounded-md bg-[#ff5722]/20 text-[#ff5722] border border-[#ff5722]/40 backdrop-blur-md">
-            3D AVATAR TRAINER
+          <span className="px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase rounded-md bg-[#40E0D0]/20 text-[#008B8B] border border-[#40E0D0]/40 backdrop-blur-md">
+            3D FITNESS TRAINER
           </span>
-          <span className="px-2 py-1 text-[11px] font-semibold tracking-wider uppercase rounded-md bg-neutral-900/80 text-neutral-300 border border-neutral-700/60 backdrop-blur-md">
-            Phase: <strong className="text-[#00ff66]">{progressPhase}</strong>
+          <span className="px-2 py-1 text-[11px] font-semibold tracking-wider uppercase rounded-md bg-white/80 text-gray-600 border border-gray-300 backdrop-blur-md">
+            Phase: <strong className="text-[#FF69B4]">{progressPhase}</strong>
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 pointer-events-auto">
           <button
-            onClick={() => setShowJoints(!showJoints)}
+            onClick={() => setShowTechnique(!showTechnique)}
             className={`p-1.5 rounded-lg border text-xs transition-all ${
-              showJoints 
-                ? 'bg-[#00ff66]/20 border-[#00ff66]/50 text-[#00ff66]' 
-                : 'bg-neutral-900/80 border-neutral-700 text-neutral-400 hover:text-white'
+              showTechnique 
+                ? 'bg-[#00BFFF]/20 border-[#00BFFF]/50 text-[#00BFFF]' 
+                : 'bg-white/80 border-gray-300 text-gray-500 hover:text-gray-700'
             }`}
-            title="Toggle Joint Indicators"
+            title="Show Technique Arrows"
           >
-            <Sliders className="w-3.5 h-3.5" />
+            <Maximize2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setIsMirrored(!isMirrored)}
             className={`p-1.5 rounded-lg border text-xs transition-all ${
               isMirrored 
-                ? 'bg-[#ff5722]/20 border-[#ff5722]/50 text-[#ff5722]' 
-                : 'bg-neutral-900/80 border-neutral-700 text-neutral-400 hover:text-white'
+                ? 'bg-[#FF69B4]/20 border-[#FF69B4]/50 text-[#FF69B4]' 
+                : 'bg-white/80 border-gray-300 text-gray-500 hover:text-gray-700'
             }`}
             title="Mirror Mode"
           >
@@ -712,63 +755,64 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
         </div>
       </div>
 
-      {/* 3D WebGL Canvas Container */}
+      {/* 3D Canvas Container */}
       <div 
         ref={mountRef} 
         style={{ height }}
         className="w-full relative cursor-grab active:cursor-grabbing select-none"
       />
 
-      {/* Exercise info tag overlay */}
+      {/* Exercise info overlay */}
       <div className="absolute bottom-16 left-4 z-10 pointer-events-none">
-        <p className="text-xs text-neutral-400 font-medium tracking-wide uppercase">Target Focus</p>
-        <p className="text-sm font-bold text-white tracking-wide">{targetMuscle} Activation</p>
+        <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">Exercise</p>
+        <p className="text-sm font-bold text-gray-800 tracking-wide">
+          {biomechanicsKey === 'shoulder_press' ? 'Seated Dumbbell Shoulder Press' : 'Fitness Demonstration'}
+        </p>
       </div>
 
-      {/* Bottom Interactive Avatar Controls Bar */}
+      {/* Bottom Controls */}
       {interactive && (
-        <div className="bg-[#1c1c1e] border-t border-[#2a2a2e] px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 z-10">
+        <div className="bg-white border-t border-gray-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 z-10">
           {/* Playback Controls */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="p-2 rounded-xl bg-[#ff5722] hover:bg-[#ff5722]/90 text-white transition-all shadow-md active:scale-95"
-              title={isPlaying ? 'Pause Demonstration' : 'Play Demonstration'}
+              className="p-2 rounded-xl bg-[#40E0D0] hover:bg-[#40E0D0]/90 text-white transition-all shadow-md active:scale-95"
+              title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
             </button>
 
             <button
               onClick={restartAnimation}
-              className="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-all active:scale-95"
-              title="Restart Motion Cycle"
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-all active:scale-95"
+              title="Restart"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
 
-            {/* Speed Toggle: Normal vs Slow-Mo */}
             <button
               onClick={() => setSpeed(speed === 1.0 ? 0.4 : 1.0)}
               className={`px-2.5 py-1.5 text-xs font-bold rounded-xl flex items-center gap-1 transition-all ${
                 speed < 1.0 
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50' 
-                  : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                  ? 'bg-amber-100 text-amber-600 border border-amber-300' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
-              title="Toggle Slow Motion"
+              title="Toggle Speed"
             >
               <Zap className="w-3.5 h-3.5" />
-              {speed < 1.0 ? '0.4x Slow' : '1.0x Normal'}
+              {speed < 1.0 ? '0.4x' : '1.0x'}
             </button>
           </div>
 
-          {/* Camera Angle Presets */}
-          <div className="flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800">
+          {/* Camera Controls */}
+          <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-200">
             <button
               onClick={() => setCameraPreset('front')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
                 cameraView === 'front' 
-                  ? 'bg-[#ff5722] text-white shadow-sm' 
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-[#40E0D0] text-white shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Front
@@ -777,8 +821,8 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
               onClick={() => setCameraPreset('side')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
                 cameraView === 'side' 
-                  ? 'bg-[#ff5722] text-white shadow-sm' 
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-[#40E0D0] text-white shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Side
@@ -787,8 +831,8 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
               onClick={() => setCameraPreset('back')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
                 cameraView === 'back' 
-                  ? 'bg-[#ff5722] text-white shadow-sm' 
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-[#40E0D0] text-white shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Back
@@ -797,8 +841,8 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
               onClick={() => setCameraPreset('threeQuarter')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
                 cameraView === 'threeQuarter' 
-                  ? 'bg-[#ff5722] text-white shadow-sm' 
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-[#40E0D0] text-white shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               3/4

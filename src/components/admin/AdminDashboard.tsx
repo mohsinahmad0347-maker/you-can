@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useFitness } from '../../context/FitnessContext';
+import { CAROUSEL_IMAGES } from '../../data/initialData';
 import { AdminExerciseForm } from './AdminExerciseForm';
 
 const TABS = ['Overview', 'Users', 'Exercises', 'Workouts', 'Analytics', 'Content', 'Logs', 'System', 'Roles'];
@@ -317,11 +318,26 @@ export const AdminDashboard: React.FC = () => {
               <h2 style={{ color: '#fff', fontFamily: 'Outfit, sans-serif', marginBottom: 24 }}>🎨 Content Management</h2>
               <h3 style={{ color: '#888', fontSize: 16, marginBottom: 16 }}>Hero Carousel Slides</h3>
               <div style={{ display: 'grid', gap: 14 }}>
-                {carouselSlides.map(slide => (
+                {carouselSlides.map((slide, index) => (
                   <div key={slide.id} className="glass-panel" style={{ borderRadius: 16, padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                    <div>
-                      <div style={{ color: '#fff', fontWeight: 700 }}>{slide.title}</div>
-                      <div style={{ color: '#888', fontSize: 13 }}>{slide.subtitle}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0, flex: 1 }}>
+                      {/* Thumbnail of the hero image the public site shows for this slide */}
+                      <img
+                        src={slide.image || CAROUSEL_IMAGES[index % CAROUSEL_IMAGES.length]}
+                        alt={slide.imageAlt || `${slide.title} hero image`}
+                        loading="lazy"
+                        style={{
+                          width: 96, height: 62, borderRadius: 10, objectFit: 'cover',
+                          flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)'
+                        }}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: '#fff', fontWeight: 700 }}>{slide.title}</div>
+                        <div style={{ color: '#888', fontSize: 13 }}>{slide.subtitle}</div>
+                        <div style={{ color: '#ff5722', fontSize: 11, fontWeight: 700, marginTop: 4 }}>
+                          {slide.badge} · {slide.ctaText}
+                        </div>
+                      </div>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <button onClick={() => updateCarouselSlide(slide.id, { active: !slide.active })} style={{

@@ -1319,50 +1319,104 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   }
 ];
 
+/**
+ * Hero carousel imagery — one unique, high quality fitness photo per slide.
+ * `auto=format` lets the browser receive modern (webp/avif) formats automatically and
+ * the width is appended per breakpoint by the carousel (`srcSet` → responsive delivery).
+ */
+export const CAROUSEL_IMAGES: string[] = [
+  // 1. Gym strength training
+  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=70',
+  // 2. Home workout
+  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=70',
+  // 3. Cardio training
+  'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&q=70',
+  // 4. Functional training
+  'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&q=70',
+  // 5. Stretching & mobility
+  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=70',
+  // 6. Dumbbell workout
+  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&q=70',
+];
+
 export const INITIAL_CAROUSEL: CarouselSlide[] = [
   {
     id: 'slide-1',
-    title: 'START YOUR FITNESS JOURNEY',
-    subtitle: 'Everything you need to train with world-class form at home or in the gym.',
-    badge: 'ALL-IN-ONE FITNESS',
-    ctaText: 'START WORKOUT',
-    ctaAction: 'generator',
+    title: 'BUILD YOUR STRENGTH',
+    subtitle: 'Train with structured gym workouts built around progressive overload and perfect form.',
+    badge: 'GYM STRENGTH',
+    ctaText: 'EXPLORE GYM',
+    ctaAction: 'workouts',
     accent: '#FF5722',
     active: true,
     order: 1,
+    image: CAROUSEL_IMAGES[0],
+    imageAlt: 'Athlete performing a heavy barbell strength training lift in a modern gym',
   },
   {
     id: 'slide-2',
-    title: 'LEARN EVERY EXERCISE',
-    subtitle: 'Follow real-time 3D biomechanical demonstrations and step-by-step cues.',
-    badge: '3D VIRTUAL TRAINER',
-    ctaText: 'EXPLORE EXERCISES',
+    title: 'WORKOUT ANYWHERE',
+    subtitle: 'Powerful home workouts without complicated equipment — no commute, no excuses.',
+    badge: 'HOME TRAINING',
+    ctaText: 'EXPLORE HOME',
     ctaAction: 'exercises',
     accent: '#00FF66',
     active: true,
     order: 2,
+    image: CAROUSEL_IMAGES[1],
+    imageAlt: 'Person completing a guided bodyweight workout at home',
   },
   {
     id: 'slide-3',
-    title: 'TRAIN SMARTER. MOVE BETTER.',
-    subtitle: 'Generate tailored programs matching your equipment, duration, and goals.',
-    badge: 'INTELLIGENT GENERATOR',
-    ctaText: 'CREATE WORKOUT',
+    title: 'IMPROVE YOUR FITNESS',
+    subtitle: 'Build endurance with guided cardio sessions, intervals and conditioning blocks.',
+    badge: 'CARDIO TRAINING',
+    ctaText: 'START CARDIO',
     ctaAction: 'generator',
     accent: '#FF5722',
     active: true,
     order: 3,
+    image: CAROUSEL_IMAGES[2],
+    imageAlt: 'Runner training cardio endurance on a treadmill',
   },
   {
     id: 'slide-4',
-    title: 'TRACK YOUR PROGRESS & PRs',
-    subtitle: 'Monitor workouts, consistency streaks, training volume, and personal records.',
-    badge: 'ANALYTICS DASHBOARD',
-    ctaText: 'VIEW DASHBOARD',
-    ctaAction: 'dashboard',
+    title: 'MOVE BETTER',
+    subtitle: 'Improve mobility, flexibility and movement quality with functional training.',
+    badge: 'FUNCTIONAL TRAINING',
+    ctaText: 'TRAIN FUNCTIONAL',
+    ctaAction: 'workouts',
     accent: '#00FF66',
     active: true,
     order: 4,
+    image: CAROUSEL_IMAGES[3],
+    imageAlt: 'Athlete performing a functional kettlebell training movement',
+  },
+  {
+    id: 'slide-5',
+    title: 'STRETCH & RECOVER',
+    subtitle: 'Guided stretching and mobility flows that keep every joint moving freely.',
+    badge: 'MOBILITY & STRETCHING',
+    ctaText: 'EXPLORE MOBILITY',
+    ctaAction: 'recovery',
+    accent: '#FF5722',
+    active: true,
+    order: 5,
+    image: CAROUSEL_IMAGES[4],
+    imageAlt: 'Person stretching and working on mobility on a training mat',
+  },
+  {
+    id: 'slide-6',
+    title: 'SCULPT WITH DUMBBELLS',
+    subtitle: 'Build muscle with efficient dumbbell sessions suited to every experience level.',
+    badge: 'DUMBBELL WORKOUT',
+    ctaText: 'BUILD MUSCLE',
+    ctaAction: 'exercises',
+    accent: '#00FF66',
+    active: true,
+    order: 6,
+    image: CAROUSEL_IMAGES[5],
+    imageAlt: 'Row of dumbbells ready for a dumbbell strength workout',
   }
 ];
 

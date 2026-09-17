@@ -13,7 +13,6 @@ import {
   Trophy,
   ArrowRight
 } from 'lucide-react';
-import { VirtualAvatar } from '../avatar/VirtualAvatar';
 import { useFitness } from '../../context/FitnessContext';
 
 export const WorkoutMode: React.FC = () => {
@@ -182,14 +181,23 @@ export const WorkoutMode: React.FC = () => {
 
       {/* Center Arena: 3D Avatar & Dynamic Countdown Rings */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-auto items-center max-w-6xl mx-auto w-full">
-        {/* Left: 3D Avatar performing exercise */}
+        {/* Left: Realistic Human Photo performing exercise */}
         <div className="lg:col-span-7">
-          <VirtualAvatar 
-            biomechanicsKey={fullExerciseData.biomechanicsKey}
-            targetMuscle={fullExerciseData.primaryMuscle}
-            exerciseName={currentItem.exerciseName}
-            height="460px"
-          />
+          <div className="relative w-full h-[460px] rounded-2xl overflow-hidden bg-gradient-to-br from-[#1c1c1e] to-[#2a2a2e] border border-[#2a2a2e]">
+            <img
+              src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80"
+              alt="Professional fitness trainer demonstrating workout exercise"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-white text-sm font-semibold">Live Workout Guide</span>
+              </div>
+              <p className="text-neutral-200 text-xs">Follow along with professional trainer demonstrations</p>
+            </div>
+          </div>
         </div>
 
         {/* Right: Live Telemetry HUD */}

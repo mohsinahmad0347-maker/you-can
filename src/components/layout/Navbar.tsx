@@ -12,11 +12,24 @@ import {
 import { useFitness } from '../../context/FitnessContext';
 
 interface NavbarProps {
+  /** Mobile drawer state (true when the off-canvas sidebar is open) */
   isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
+  /** Desktop collapse state of the sidebar column */
+  isCollapsed: boolean;
+  /** True when the app is rendering the desktop two-column layout */
+  isDesktop: boolean;
+  /** Single toggle: collapses the desktop column / opens the mobile drawer */
+  onToggleSidebar: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ isSidebarOpen, setIsSidebarOpen }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  isSidebarOpen,
+  setIsSidebarOpen,
+  isCollapsed,
+  isDesktop,
+  onToggleSidebar,
+}) => {
   const { 
     currentView, 
     setCurrentView, 
@@ -30,14 +43,25 @@ export const Navbar: React.FC<NavbarProps> = ({ isSidebarOpen, setIsSidebarOpen 
 
   return (
     <header className="sticky top-0 z-40 w-full glass-nav px-4 lg:px-6 h-16 flex items-center justify-between transition-all select-none">
-      {/* LEFT: Mobile Menu Toggle & YOU CAN Brand Logo */}
+      {/* LEFT: Menu Toggle & YOU CAN Brand Logo */}
       <div className="flex items-center gap-3">
+        {/* Hamburger / sidebar toggle — uses the YOU CAN logo accent color (#ff5722) */}
         <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800/80 transition-all active:scale-95 focus:outline-none lg:flex"
-          aria-label="Toggle Sidebar"
+          type="button"
+          onClick={onToggleSidebar}
+          aria-label="Toggle navigation"
+          aria-controls="app-sidebar"
+          aria-expanded={isDesktop ? !isCollapsed : isSidebarOpen}
+          title={
+            isDesktop
+              ? isCollapsed ? 'Expand navigation' : 'Collapse navigation'
+              : isSidebarOpen ? 'Close navigation' : 'Open navigation'
+          }
+          className="shrink-0 w-11 h-11 lg:w-[42px] lg:h-[42px] rounded-xl flex items-center justify-center bg-[#ff5722]/10 border border-[#ff5722]/40 text-[#ff5722] hover:bg-[#ff5722]/20 hover:text-[#ff8a65] hover:border-[#ff5722]/70 active:scale-95 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5722]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]"
         >
-          {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {!isDesktop && isSidebarOpen
+            ? <X className="w-[22px] h-[22px] lg:w-[26px] lg:h-[26px]" strokeWidth={2.6} />
+            : <Menu className="w-[26px] h-[26px] lg:w-[22px] lg:h-[22px]" strokeWidth={2.6} />}
         </button>
 
         {/* Brand Logo */}

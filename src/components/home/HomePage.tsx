@@ -19,7 +19,6 @@ import {
   Info
 } from 'lucide-react';
 import { HeroCarousel } from './HeroCarousel';
-import { VirtualAvatar } from '../avatar/VirtualAvatar';
 import { useFitness } from '../../context/FitnessContext';
 import { Exercise } from '../../types';
 
@@ -211,14 +210,20 @@ export const HomePage: React.FC = () => {
               </button>
             </div>
 
-            {/* Right: 3D Avatar Canvas */}
+            {/* Right: Realistic Human Photo */}
             <div className="w-full lg:w-7/12">
-              <VirtualAvatar 
-                biomechanicsKey={avatarDemoExercise.biomechanicsKey}
-                targetMuscle={avatarDemoExercise.primaryMuscle}
-                exerciseName={avatarDemoExercise.name}
-                height="450px"
-              />
+              <div className="relative w-full h-[450px] rounded-2xl overflow-hidden bg-gradient-to-br from-[#1c1c1e] to-[#2a2a2e] border border-[#2a2a2e]">
+                <img
+                  src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80"
+                  alt="Fitness trainer demonstrating exercise"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="text-white text-sm font-semibold">Professional Trainer Demonstration</p>
+                  <p className="text-neutral-300 text-xs">Real human guidance for proper form</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -179,7 +179,21 @@ export const FitnessProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(() => {
     const saved = localStorage.getItem('you_can_carousel');
-    return saved ? JSON.parse(saved) : INITIAL_CAROUSEL;
+    if (!saved) return INITIAL_CAROUSEL;
+    try {
+      const parsed = JSON.parse(saved) as CarouselSlide[];
+      if (!Array.isArray(parsed) || parsed.length === 0) return INITIAL_CAROUSEL;
+      // Migrate slides saved before hero media was introduced: keep the admin's Active/Inactive
+      // choices but adopt the current slides (unique image, title, copy and CTA per slide).
+      const needsMediaMigration = parsed.some(s => !s || typeof s.image !== 'string' || !s.image);
+      if (!needsMediaMigration) return parsed;
+      return INITIAL_CAROUSEL.map(slide => {
+        const previous = parsed.find(s => s && s.id === slide.id);
+        return previous ? { ...slide, active: previous.active } : slide;
+      });
+    } catch {
+      return INITIAL_CAROUSEL;
+    }
   });
 
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {

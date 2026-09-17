@@ -31,7 +31,7 @@ import { WorkoutTimerPage } from './components/tools/WorkoutTimerPage';
 import { SettingsPage } from './components/settings/SettingsPage';
 import { WarmupPage } from './components/warmup/WarmupPage';
 
-// ─── Inner App (has access to FitnessContext) ───────────────────────────────
+// ─── Inner App (has access to FitnessContext) ──────────────────────────────
 const AppShell: React.FC = () => {
   const {
     currentView,
@@ -43,12 +43,47 @@ const AppShell: React.FC = () => {
   } = useFitness();
 
   const [isLoading, setIsLoading] = useState(true);
+  // Mobile/tablet: sidebar is an off-canvas drawer
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop: sidebar is a permanent column that collapses to an icon rail
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isDesktop, setIsDesktop] = useState<boolean>(() =>
+    typeof window === 'undefined' ? true : window.matchMedia('(min-width: 1024px)').matches
+  );
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2200);
+    const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
+
+  // Keep the layout mode in sync with the viewport (desktop column vs mobile drawer)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const apply = (matches: boolean) => {
+      setIsDesktop(matches);
+      if (matches) setSidebarOpen(false); // never leave a drawer open behind desktop content
+    };
+    apply(mq.matches);
+    const onChange = (event: MediaQueryListEvent) => apply(event.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // Escape closes the mobile drawer
+  useEffect(() => {
+    if (isDesktop || !sidebarOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isDesktop, sidebarOpen]);
+
+  // One hamburger, two behaviours: collapse the desktop column / open the mobile drawer
+  const toggleSidebar = () => {
+    if (isDesktop) setSidebarCollapsed(prev => !prev);
+    else setSidebarOpen(prev => !prev);
+  };
 
   if (isLoading) return <LoadingScreen />;
 
@@ -84,28 +119,31 @@ const AppShell: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d0d0d', position: 'relative' }}>
+    <div className="min-h-screen w-full bg-[#0d0d0d] relative">
       {/* Top Navigation Bar */}
-      <Navbar isSidebarOpen={sidebarOpen} setIsSidebarOpen={setSidebarOpen} />
+      <Navbar
+        isSidebarOpen={sidebarOpen}
+        setIsSidebarOpen={setSidebarOpen}
+        isCollapsed={sidebarCollapsed}
+        isDesktop={isDesktop}
+        onToggleSidebar={toggleSidebar}
+      />
 
-      {/* Slide-in Sidebar */}
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-
-      {/* Overlay for sidebar on mobile */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-            zIndex: 40, backdropFilter: 'blur(2px)'
-          }}
+      {/* Application layout: sticky sidebar column + flexible main content */}
+      <div className="flex w-full items-start">
+        {/* Sidebar (sticky 260px column on desktop / off-canvas drawer on mobile) */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
         />
-      )}
 
-      {/* Main Content */}
-      <main style={{ transition: 'all 0.3s ease' }}>
-        {renderView()}
-      </main>
+        {/* Main Content — automatically takes the remaining width */}
+        <main className="flex-1 min-w-0 w-full transition-all duration-300 ease-in-out">
+          {renderView()}
+        </main>
+      </div>
 
       {/* Global Modals */}
       {isSearchOpen && <GlobalSearchModal />}

@@ -12,7 +12,6 @@ import {
   Sparkles,
   ArrowRight
 } from 'lucide-react';
-import { VirtualAvatar } from '../avatar/VirtualAvatar';
 import { useFitness } from '../../context/FitnessContext';
 
 export const ExercisePracticalPage: React.FC = () => {
@@ -81,14 +80,23 @@ export const ExercisePracticalPage: React.FC = () => {
 
       {/* Main Split Layout: Left Avatar | Right Exercise Telemetry */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LEFT SIDE (Section 17): Large Animated Virtual Avatar */}
+        {/* LEFT SIDE (Section 17): Realistic Human Photo */}
         <div className="lg:col-span-6 space-y-4">
-          <VirtualAvatar 
-            biomechanicsKey={exercise.biomechanicsKey}
-            targetMuscle={exercise.primaryMuscle}
-            exerciseName={exercise.name}
-            height="520px"
-          />
+          <div className="relative w-full h-[520px] rounded-2xl overflow-hidden bg-gradient-to-br from-[#1c1c1e] to-[#2a2a2e] border border-[#2a2a2e]">
+            <img
+              src="https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&q=80"
+              alt="Professional fitness trainer demonstrating proper exercise form"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-white text-sm font-semibold">Live Demonstration</span>
+              </div>
+              <p className="text-neutral-200 text-xs">Watch proper form and technique from professional trainers</p>
+            </div>
+          </div>
 
           {/* Quick Telemetry Strip */}
           <div className="grid grid-cols-3 gap-3">

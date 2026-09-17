@@ -172,6 +172,10 @@ export interface CarouselSlide {
   accent: string;
   active: boolean;
   order: number;
+  /** Hero background image URL (optional — older saved slides fall back to CAROUSEL_IMAGES) */
+  image?: string;
+  /** Accessible description of the hero background image */
+  imageAlt?: string;
 }
 
 export interface AdminUser {
