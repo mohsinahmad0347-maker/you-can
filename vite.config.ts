@@ -9,7 +9,8 @@ import { defineConfig } from 'vite'
 // empty #root (blank screen). The base now follows the environment, and VITE_BASE can override it.
 function resolveBase(): string {
   if (process.env.VITE_BASE) return process.env.VITE_BASE
-  // GitHub Actions always sets GITHUB_ACTIONS, and Vercel always sets VERCEL during builds.
+  // GitHub Actions sets GITHUB_ACTIONS for the Pages sub-path deploy; every other host
+  // (Vercel, `vite preview`, plain static servers) serves the app from the root.
   if (process.env.GITHUB_ACTIONS) return '/you-can/'
   return '/'
 }
