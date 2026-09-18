@@ -34,9 +34,9 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-/** Icon sizes: comfortable 26px icons while collapsed, 18px rows while expanded. */
+/** Icon sizes: medium 20px icons while collapsed, 18px rows while expanded. */
 const EXPANDED_ICON = 'w-[18px] h-[18px]';
-const COLLAPSED_ICON = 'w-[26px] h-[26px]';
+const COLLAPSED_ICON = 'w-[20px] h-[20px]';
 
 /** Muscle groups offered by the exercise library — first entry clears the filter. */
 const EXERCISE_CATEGORIES = [
@@ -80,10 +80,16 @@ const NavButton: React.FC<NavButtonProps> = ({
   onShowTooltip,
   onHideTooltip,
 }) => {
+  /**
+   * Active rows use a translucent accent wash — never a solid accent fill —
+   * so the icon (painted in the accent colour) can never blend into the
+   * background and become invisible. The left indicator rail is rendered in
+   * both expanded and icon-rail modes via `indicatorColor` below.
+   */
   const activeClasses =
     activeTone === 'green'
-      ? 'bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/40 font-bold'
-      : 'bg-[#ff5722] text-white font-bold shadow-md shadow-[#ff5722]/25';
+      ? 'bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/50 font-bold shadow-sm shadow-[#00ff66]/10'
+      : 'bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/50 font-bold shadow-sm shadow-[#ff5722]/10';
   const indicatorColor = activeTone === 'green' ? 'bg-[#00ff66]' : 'bg-[#ff5722]';
 
   return (
@@ -104,11 +110,12 @@ const NavButton: React.FC<NavButtonProps> = ({
           : 'text-neutral-300 hover:bg-white/[0.07] hover:text-white border border-transparent',
       ].join(' ')}
     >
-      {/* Active accent indicator on the collapsed icon rail */}
-      {active && collapsed && (
+      {/* Active accent indicator rail — rendered in both expanded and icon-rail modes
+          so the selected row is unmistakable, never just a colour wash. */}
+      {active && (
         <span
           aria-hidden="true"
-          className={`absolute -left-2 top-1/2 h-8 w-[3px] -translate-y-1/2 rounded-r-full ${indicatorColor}`}
+          className={`absolute -left-2 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r-full ${indicatorColor}`}
         />
       )}
       {icon}
@@ -193,14 +200,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const hideTooltip = () => setTooltip(null);
 
-  const navIcon = (Icon: typeof Dumbbell, active: boolean, accent = '') => (
-    <Icon
-      className={[
-        collapsed ? COLLAPSED_ICON : EXPANDED_ICON,
-        'shrink-0 transition-transform duration-200 group-hover:scale-110',
-        active ? 'text-[#ff5722]' : accent,
-      ].join(' ')}
-    />
+  /**
+   * Icon factory. When the row is selected the icon is painted in the *bright*
+   * accent colour (light orange / neon green) rather than the deeper accent used
+   * for fills, which guarantees it stays readable on the translucent active wash.
+   */
+  const navIcon = (
+    Icon: typeof Dumbbell,
+    active: boolean,
+    accent = '',
+    activeTone: 'accent' | 'green' = 'accent'
+  ) => (
+    <div className={`relative ${collapsed ? '' : 'p-2 rounded-xl'} transition-all`}>
+      <Icon
+        className={[
+          collapsed ? COLLAPSED_ICON : EXPANDED_ICON,
+          'shrink-0 transition-transform duration-200 group-hover:scale-110',
+          active
+            ? activeTone === 'green'
+              ? 'text-[#00ff66] drop-shadow-[0_0_6px_rgba(0,255,102,0.45)]'
+              : 'text-[#ff8a65] drop-shadow-[0_0_6px_rgba(255,87,34,0.45)]'
+            : accent,
+        ].join(' ')}
+      />
+    </div>
   );
 
   const navItem = (
@@ -212,7 +235,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ) => (
     <NavButton
       label={label}
-      icon={navIcon(Icon, isViewActive(view), accent)}
+      icon={navIcon(Icon, isViewActive(view), accent, activeTone)}
       collapsed={collapsed}
       active={isViewActive(view)}
       activeTone={activeTone}

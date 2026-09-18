@@ -308,7 +308,7 @@ export const ExerciseLibrary: React.FC = () => {
                 onClick={() => openExerciseDetail(ex.id)}
                 className="mt-6 w-full py-3 rounded-2xl bg-neutral-800 hover:bg-[#ff5722] text-white text-xs font-black tracking-wider uppercase flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
               >
-                <span>DEMONSTRATE IN 3D</span>
+                <span>DEMONSTRATE</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
