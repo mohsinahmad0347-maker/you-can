@@ -111,11 +111,15 @@ const NavButton: React.FC<NavButtonProps> = ({
       ].join(' ')}
     >
       {/* Active accent indicator rail — rendered in both expanded and icon-rail modes
-          so the selected row is unmistakable, never just a colour wash. */}
+          so the selected row is unmistakable, never just a colour wash. In the
+          collapsed rail it sits inside the button because `overflow-x-hidden` on
+          <nav> clips anything that overflows its padding box. */}
       {active && (
         <span
           aria-hidden="true"
-          className={`absolute -left-2 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r-full ${indicatorColor}`}
+          className={`absolute top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r-full ${indicatorColor} ${
+            collapsed ? 'left-0' : '-left-2'
+          }`}
         />
       )}
       {icon}
