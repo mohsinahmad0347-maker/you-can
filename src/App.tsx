@@ -79,6 +79,30 @@ const AppShell: React.FC = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isDesktop, sidebarOpen]);
 
+  /**
+   * Freeze the page behind the phone drawer. Without this the article behind the overlay
+   * keeps scrolling under the user's thumb, which is what made the drawer feel broken/janky
+   * on phones. Only the overflow is locked (the body is never offset) so the sticky navbar —
+   * and its close button — stays exactly where the user expects it.
+   */
+  useEffect(() => {
+    if (isDesktop || !sidebarOpen) return;
+    const html = document.documentElement;
+    const previous = { html: html.style.overflow, body: document.body.style.overflow };
+    html.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = previous.html;
+      document.body.style.overflow = previous.body;
+    };
+  }, [isDesktop, sidebarOpen]);
+
+  // Navigating to another page from the drawer already closes it; keep the state honest
+  // if the view changes from anywhere else (dashboard shortcut, admin login, …).
+  useEffect(() => {
+    if (!isDesktop) setSidebarOpen(false);
+  }, [currentView, isDesktop]);
+
   // One hamburger, two behaviours: collapse the desktop column / open the mobile drawer
   const toggleSidebar = () => {
     if (isDesktop) setSidebarCollapsed(prev => !prev);
@@ -137,6 +161,7 @@ const AppShell: React.FC = () => {
           setIsOpen={setSidebarOpen}
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+          isDesktop={isDesktop}
         />
 
         {/* Main Content — automatically takes the remaining width */}

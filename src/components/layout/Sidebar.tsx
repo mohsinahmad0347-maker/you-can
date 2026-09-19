@@ -20,6 +20,7 @@ import {
   Activity,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   X
 } from 'lucide-react';
 import { useFitness } from '../../context/FitnessContext';
@@ -32,6 +33,8 @@ interface SidebarProps {
   isCollapsed?: boolean;
   /** Desktop: toggles the icon-rail mode */
   onToggleCollapse?: () => void;
+  /** True while the app renders the desktop two-column layout (>= 1024px) */
+  isDesktop: boolean;
 }
 
 /** Icon sizes: medium 20px icons while collapsed, 18px rows while expanded. */
@@ -104,7 +107,7 @@ const NavButton: React.FC<NavButtonProps> = ({
       aria-current={active ? 'page' : undefined}
       className={[
         NAV_ITEM_BASE,
-        collapsed ? 'mx-auto h-14 w-14 justify-center' : 'w-full gap-3 px-3 py-2.5 text-sm',
+        collapsed ? 'mx-auto h-14 w-14 justify-center' : 'w-full gap-3 px-3 py-3 lg:py-2.5 text-[15px] lg:text-sm',
         active
           ? activeClasses
           : 'text-neutral-300 hover:bg-white/[0.07] hover:text-white border border-transparent',
@@ -141,7 +144,7 @@ const SubNavButton: React.FC<SubNavButtonProps> = ({ label, onClick, icon, dotCo
   <button
     type="button"
     onClick={onClick}
-    className="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/[0.07] transition-all text-left"
+    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 lg:py-1.5 rounded-lg text-[13px] lg:text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/[0.07] active:bg-white/10 transition-all text-left"
   >
     <span className="flex items-center gap-2.5 min-w-0">
       {dotColor && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />}
@@ -162,11 +165,53 @@ const SectionLabel: React.FC<{ children: React.ReactNode; collapsed: boolean }> 
       </p>
     );
 
+/**
+ * Long link lists (the exercise library alone is twelve rows) turn the phone drawer into
+ * an endless scroll, so on the mobile drawer they become tap-to-expand groups. The desktop
+ * column keeps rendering the flat, always-visible list it has always had.
+ */
+const CollapsibleGroup: React.FC<{
+  title: string;
+  /** Collapsible behaviour is mobile-only — desktop keeps the flat list. */
+  collapsible: boolean;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}> = ({ title, collapsible, defaultOpen = false, children }) => {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (!collapsible) {
+    return (
+      <div>
+        <SectionLabel collapsed={false}>{title}</SectionLabel>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(prev => !prev)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-2 px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 hover:text-white active:bg-white/5 transition-colors"
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 text-neutral-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && <div className="px-1.5 pb-2">{children}</div>}
+    </div>
+  );
+};
+
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   setIsOpen,
   isCollapsed = false,
   onToggleCollapse,
+  isDesktop,
 }) => {
   const {
     currentView,
@@ -177,7 +222,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   } = useFitness();
 
   const [tooltip, setTooltip] = useState<{ label: string; top: number } | null>(null);
-  const collapsed = isCollapsed;
+  /**
+   * The icon rail is a desktop-only idea: on a phone the drawer always shows full labels,
+   * even if the desktop column was left collapsed before the viewport shrank.
+   */
+  const collapsed = isCollapsed && isDesktop;
+  const drawerMode = !isDesktop;
 
   const handleNav = (view: string, categoryFilter?: string) => {
     if (categoryFilter !== undefined) {
@@ -187,7 +237,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setCurrentView(view);
     }
     // Auto-close the drawer on smaller screens (desktop keeps its permanent column)
-    if (!window.matchMedia('(min-width: 1024px)').matches) {
+    if (!isDesktop) {
       setIsOpen(false);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -251,29 +301,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile backdrop — tapping outside closes the drawer (never shown on desktop) */}
-      {isOpen && (
+      {/* Mobile backdrop. Deliberately NOT blurred: a full-screen backdrop-filter repaints
+          the whole viewport on every frame and is what made the drawer feel janky on
+          phones. Tapping it dismisses the drawer. */}
+      {drawerMode && isOpen && (
         <div
+          data-drawer-backdrop=""
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
-          className="fixed inset-x-0 top-16 bottom-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-x-0 top-16 bottom-0 z-30 touch-none bg-black/70 lg:hidden"
         />
       )}
 
-      {/* Sidebar: sticky 260px column on desktop · off-canvas drawer on mobile */}
+      {/* Sidebar: sticky 260px column on desktop · off-canvas drawer on mobile.
+          On phones the panel is pinned under the 4rem navbar so the navbar toggle (which
+          flips to an X) stays visible and can always close the drawer. */}
       <aside
         id="app-sidebar"
         aria-label="YOU CAN navigation"
+        /* A closed drawer keeps its links out of the tab order (and off screen readers). */
+        inert={!isDesktop && !isOpen}
         className={[
-          'select-none flex flex-col shrink-0 bg-[#2a2a2a] border-r border-white/10',
-          'transition-[transform,width] duration-300 ease-in-out',
-          'fixed top-16 left-0 bottom-0 z-50 w-[82vw] max-w-[280px] shadow-2xl',
+          'select-none flex flex-col shrink-0 bg-[#232326] border-r border-white/10',
+          'fixed left-0 top-16 z-40 h-[calc(100dvh-4rem)] w-[84vw] max-w-[300px] rounded-r-3xl shadow-2xl shadow-black/70',
+          'will-change-transform transition-transform duration-300 ease-out motion-reduce:transition-none',
           isOpen ? 'translate-x-0' : '-translate-x-full',
-          'lg:sticky lg:top-16 lg:bottom-auto lg:left-auto lg:z-30 lg:h-[calc(100vh-4rem)] lg:max-w-none lg:translate-x-0 lg:shadow-none',
+          'lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:max-w-none lg:translate-x-0 lg:rounded-none lg:shadow-none lg:transition-[transform,width]',
           collapsed ? 'lg:w-20' : 'lg:w-[260px]',
         ].join(' ')}
       >
-        {/* Logo + collapse controls */}
+        {/* Logo + drawer controls */}
         <div
           className={`shrink-0 border-b border-white/10 flex gap-2 ${
             collapsed ? 'flex-col items-center px-2 py-3' : 'items-center justify-between px-3.5 py-3'
@@ -301,16 +358,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             )}
           </button>
-
-          <div className={`flex items-center gap-1 ${collapsed ? 'flex-col' : ''}`}>
-            {/* Close drawer (mobile/tablet only) */}
+          {/* Close / collapse controls */}
+          <div className="flex items-center gap-1">
+            {/* Labelled close button for the phone drawer — the bare icon was easy to miss */}
             <button
               type="button"
               onClick={() => setIsOpen(false)}
               aria-label="Close navigation"
-              className="lg:hidden p-2.5 rounded-xl text-neutral-300 hover:text-white hover:bg-white/[0.07] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5722]/70"
+              className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl text-[13px] font-bold text-neutral-200 bg-white/[0.07] border border-white/10 hover:bg-white/[0.12] hover:text-white active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5722]/70"
             >
               <X className="w-4 h-4" />
+              Close
             </button>
             {/* Collapse / expand rail (desktop only) */}
             <button
@@ -326,11 +384,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
         </div>
-
         {/* Scrollable navigation: labels hide when collapsed, icons always stay */}
         <nav
           aria-label="Main navigation"
-          className={`nav-scroll flex-1 overflow-y-auto overflow-x-hidden ${collapsed ? 'px-2 py-4 space-y-3' : 'px-3 py-4 space-y-5'}`}
+          className={`nav-scroll overscroll-contain flex-1 overflow-y-auto overflow-x-hidden ${
+            collapsed ? 'px-2 py-4 space-y-3' : 'px-3 py-4 space-y-4'
+          }`}
         >
           {/* 1. MAIN */}
           <div className={collapsed ? 'space-y-3' : 'space-y-1'}>
@@ -352,27 +411,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {navItem(Target, 'Goals', 'goals')}
             {navItem(Calendar, 'Calendar', 'calendar')}
           </div>
-          {/* 2. EXERCISE LIBRARY — expanded sidebar only (keeps the icon rail clean) */}
+          {/* 2. EXERCISE LIBRARY — expanded sidebar only (keeps the icon rail clean).
+              On the phone drawer the twelve muscle categories collapse into one row. */}
           {!collapsed && (
-            <div>
-              <SectionLabel collapsed={collapsed}>Exercise Library</SectionLabel>
+            <CollapsibleGroup title="Exercise Library" collapsible={drawerMode} defaultOpen={false}>
               <div className="space-y-0.5">
-                {EXERCISE_CATEGORIES.map(category => (
+                <SubNavButton
+                  label="All Exercises"
+                  trailingChevron
+                  onClick={() => handleNav('exercises', '')}
+                />
+                {EXERCISE_CATEGORIES.filter(category => category !== 'All Exercises').map(category => (
                   <SubNavButton
                     key={category}
                     label={category}
                     trailingChevron
-                    onClick={() => handleNav('exercises', category === 'All Exercises' ? '' : category)}
+                    onClick={() => handleNav('exercises', category)}
                   />
                 ))}
               </div>
-            </div>
+            </CollapsibleGroup>
           )}
 
           {/* 3. TRAINING MODES */}
           {!collapsed && (
-            <div>
-              <SectionLabel collapsed={collapsed}>Training Modes</SectionLabel>
+            <CollapsibleGroup title="Training Modes" collapsible={drawerMode} defaultOpen={false}>
               <div className="space-y-0.5">
                 <SubNavButton label="Gym Workouts" dotColor="#ff5722" onClick={() => handleNav('workouts', 'gym')} />
                 <SubNavButton label="Home Workouts" dotColor="#00ff66" onClick={() => handleNav('workouts', 'home')} />
@@ -387,7 +450,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNav('recovery')}
                 />
               </div>
-            </div>
+            </CollapsibleGroup>
           )}
           {/* 4. TOOLS & ASSISTANT */}
           <div className={collapsed ? 'space-y-3' : 'space-y-1'}>
@@ -413,8 +476,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {navItem(Settings, 'Settings', 'settings')}
           </div>
         </nav>
-        {/* Bottom quick switch to the admin platform */}
-        <div className="shrink-0 p-3 border-t border-white/10 bg-black/20">
+        {/* Bottom quick switch to the admin platform (padded for the phone home indicator) */}
+        <div className="shrink-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-white/10 bg-black/20">
           <button
             type="button"
             onClick={() => handleNav(isAdminLoggedIn ? 'admin' : 'admin-login')}
